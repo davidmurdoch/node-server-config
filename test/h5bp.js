@@ -356,6 +356,24 @@ describe('h5bp', function() {
                 .get('/42.html')
                 .expect(404, done);
         });
+
+        xdescribe('concatenation & minification of javascripts', function() {
+            describe('with Browserify', function() {
+                it('should concatenate', function(done) {
+                    helper.stop()
+                        .create({ scripts: { concat: ['concat.js'], type: 'commonjs' } })
+                        .start()
+                        .request()
+                        .get('/concat.js')
+                        .expect(200, done);
+                });
+            });
+
+	        it('should default to commonjs', function() {
+		        helper.stop()
+			        .create({ scripts: { concat: ['concat.js'] } });
+	        });
+        });
     });
 
     describe('standalone', function() {
