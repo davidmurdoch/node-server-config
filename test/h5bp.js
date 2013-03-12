@@ -1,12 +1,10 @@
 // prevents express for dumping error in test output
-//process.env.NODE_ENV = 'test';
+process.env.NODE_ENV = 'test';
 
 var h5bp = require('../lib/h5bp');
 var express = require('express');
 require('chai').should();
 var request = require('supertest');
-var url = require('url');
-var fs = require('fs');
 var path = require('path');
 
 const HTML = 'html htm'.split(' ');
@@ -357,21 +355,73 @@ describe('h5bp', function() {
                 .expect(404, done);
         });
 
-        xdescribe('concatenation & minification of javascripts', function() {
-            describe('with Browserify', function() {
-                it('should concatenate', function(done) {
-                    helper.stop()
-                        .create({ scripts: { concat: ['concat.js'], type: 'commonjs' } })
-                        .start()
-                        .request()
-                        .get('/concat.js')
-                        .expect(200, done);
-                });
+        describe('concatenation & minification of javascripts', function() {
+            describe('using CommonJS', function() {
+	            it('should concatenate a file directly a the root level', function(done) {
+		            helper.stop()
+			            .create({ scripts: { concat: ['commonjs.js'], method: 'commonjs' } })
+			            .start()
+			            .request()
+			            .get('/commonjs.js')
+			            .expect('content-type', 'application/javascript')
+			            .expect(200, done);
+	            });
+
+	            it('should concatenate a file more deep in the hierarchy', function(done) {
+		            helper.stop()
+			            .create({ scripts: { concat: ['/deep/commonjs.js'], method: 'commonjs' } })
+			            .start()
+			            .request()
+			            .get('/deep/commonjs.js')
+			            .expect('content-type', 'application/javascript')
+			            .expect(200, done);
+	            });
             });
 
-	        it('should default to commonjs', function() {
+	        it('should default to commonjs', function(done) {
 		        helper.stop()
-			        .create({ scripts: { concat: ['concat.js'] } });
+			        .create({ scripts: { concat: ['commonjs.js'] } })
+			        .start()
+			        .request()
+			        .get('/commonjs.js')
+			        .expect('content-type', 'application/javascript')
+			        .expect(200, done);
+	        });
+
+	        it('should throw an error if method is not valid', function() {
+		        (function () {
+			        helper.stop()
+				        .create({ scripts: { method: 'madafaka' } })
+		        }).should.throw(/Script concatenation method can be either 'commonjs' or 'amd'/);
+		        helper.stop();
+	        });
+
+	        it('should accept a string when there is only one script', function(done) {
+		        helper.stop()
+			        .create({ scripts: { concat: 'commonjs.js', method: 'commonjs' } })
+			        .start()
+			        .request()
+			        .get('/deep/commonjs.js')
+			        .expect('content-type', 'application/javascript')
+			        .expect(200, done);
+	        });
+
+	        it('should throw an error if there is no scripts concatenate', function() {
+		        (function () {
+			        helper.stop()
+				        .create({ scripts: { method: 'commonjs' } })
+		        }).should.throw(/There is no script to concatenate/);
+		        helper.stop();
+	        });
+
+	        it('should work with cache busting', function(done) {
+		        helper.stop()
+			        .create({ scripts: { concat: ['commonjs.js'] } })
+			        .start()
+			        .request()
+			        .get('/commonjs.123456.js')
+			        .expect('content-type', 'application/javascript')
+			        .expect(200, done);
 	        });
         });
     });
@@ -706,6 +756,76 @@ describe('h5bp', function() {
                 .get('/42.html')
                 .expect(404, done);
         });
+
+	    describe('concatenation & minification of javascripts', function() {
+		    describe('using CommonJS', function() {
+			    it('should concatenate a file directly a the root level', function(done) {
+				    helper.stop()
+					    .create({ scripts: { concat: ['commonjs.js'], method: 'commonjs' } })
+					    .start()
+					    .request()
+					    .get('/commonjs.js')
+					    .expect('content-type', 'application/javascript')
+					    .expect(200, done);
+			    });
+
+			    it('should concatenate a file more deep in the hierarchy', function(done) {
+				    helper.stop()
+					    .create({ scripts: { concat: ['/deep/commonjs.js'], method: 'commonjs' } })
+					    .start()
+					    .request()
+					    .get('/deep/commonjs.js')
+					    .expect('content-type', 'application/javascript')
+					    .expect(200, done);
+			    });
+		    });
+
+		    it('should default to commonjs', function(done) {
+			    helper.stop()
+				    .create({ scripts: { concat: ['commonjs.js'] } })
+				    .start()
+				    .request()
+				    .get('/commonjs.js')
+				    .expect('content-type', 'application/javascript')
+				    .expect(200, done);
+		    });
+
+		    it('should throw an error if method is not valid', function() {
+			    (function () {
+				    helper.stop()
+					    .create({ scripts: { method: 'madafaka' } })
+			    }).should.throw(/Script concatenation method can be either 'commonjs' or 'amd'/);
+			    helper.stop();
+		    });
+
+		    it('should accept a string when there is only one script', function(done) {
+			    helper.stop()
+				    .create({ scripts: { concat: 'commonjs.js', method: 'commonjs' } })
+				    .start()
+				    .request()
+				    .get('/deep/commonjs.js')
+				    .expect('content-type', 'application/javascript')
+				    .expect(200, done);
+		    });
+
+		    it('should throw an error if there is no scripts concatenate', function() {
+			    (function () {
+				    helper.stop()
+					    .create({ scripts: { method: 'commonjs' } })
+			    }).should.throw(/There is no script to concatenate/);
+			    helper.stop();
+		    });
+
+		    it('should work with cache busting', function(done) {
+			    helper.stop()
+				    .create({ scripts: { concat: ['commonjs.js'] } })
+				    .start()
+				    .request()
+				    .get('/commonjs.123456.js')
+				    .expect('content-type', 'application/javascript')
+				    .expect(200, done);
+		    });
+	    });
     });
 
     describe('#createServer', function() {
